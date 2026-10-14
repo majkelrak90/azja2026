@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14213d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Azja 2026">
+<meta name="format-detection" content="telephone=no">
+<title>Azja 2026 – mapa dni</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
+<style>
+:root{--b:#14213d;--o:#fca311;--g:#e5e5e5;--k:#000}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;display:flex;height:100vh;color:#000;background:#fff}
+#side{width:380px;display:flex;flex-direction:column;background:#fff;border-right:3px solid var(--o)}
+header{background:var(--b);color:#fff;padding:10px 12px;font-size:15px;font-weight:bold;border-bottom:3px solid var(--o)}
+header small{display:block;font-weight:normal;opacity:.8;font-size:11px}
+#nav{padding:8px;border-bottom:1px solid var(--g)}
+#nav .row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px}
+#nav .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--b);font-weight:bold;margin:2px 0 3px;width:100%}
+button{font:inherit;font-size:11px;border:1px solid var(--b);background:#fff;color:var(--b);border-radius:5px;padding:4px 7px;cursor:pointer;line-height:1.25}
+button:hover{background:var(--g)}
+button.on{background:var(--b);border-color:var(--b);color:#fff}
+button.g{border:1px solid var(--o);color:#000;box-shadow:inset 0 -3px 0 var(--o)}
+button.g.on{background:var(--o);color:#000;border-color:var(--o)}
+#info{flex:1;overflow:auto;padding:12px;font-size:13px}
+#info h2{margin:0;font-size:17px;color:var(--b)}
+.sub{color:#333;margin:2px 0 10px;font-size:12px}
+.stop{display:flex;gap:8px;padding:6px;border-radius:6px;cursor:pointer}
+.stop:hover{background:var(--g)}
+.stop i{flex:none;width:24px;height:24px;border-radius:50%;font-style:normal;font-size:12px;font-weight:bold;display:flex;align-items:center;justify-content:center}
+.stop small{display:block;color:#444;font-size:12px}
+.leg{margin:2px 0 2px 14px;padding:5px 8px;border-left:4px solid;background:var(--g);font-size:12px;border-radius:0 5px 5px 0}
+.leg b{font-size:11px}
+.leg a{color:var(--b);font-weight:bold;font-size:11px}
+#legend .lgt{cursor:pointer;font-weight:500;color:var(--b)}
+#legend.closed .items{display:none}
+#legend{padding:7px 12px;border-top:1px solid var(--g);font-size:11px;line-height:1.8}
+#legend span{margin-right:9px;white-space:nowrap}
+#legend u{display:inline-block;width:22px;border-top:3px solid;vertical-align:middle;margin-right:3px;text-decoration:none}
+#legend em{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:3px;vertical-align:middle}
+#map{flex:1}
+.pin{border-radius:50%;font-weight:bold;border:2px solid #fff;box-shadow:0 1px 4px #0008;display:flex;align-items:center;justify-content:center}
+.leaflet-tooltip{white-space:normal;max-width:250px;border-color:var(--b);font-size:12px}
+.leaflet-tooltip b{color:var(--b)}
+@media(max-width:800px){body{flex-direction:column-reverse}#side{width:100%;height:48vh}#map{height:52vh;flex:none}}
+
+/* ===== Filtry podkładu (przybliżenie palety Google) ===== */
+.t-google{filter:saturate(.82) brightness(1.05) contrast(.93)}
+.t-osmg{filter:saturate(.72) brightness(1.05) contrast(.95)}
+/* ===== Nakładka w stylu Google Maps ===== */
+body{font-family:Roboto,Arial,sans-serif;display:block;position:relative;overflow:hidden}
+#map{position:absolute;inset:0;z-index:1}
+#side{position:absolute;z-index:1100;top:12px;left:12px;bottom:12px;width:392px;border:0;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.18);overflow:hidden}
+header{background:#fff;color:#000;border-bottom:1px solid var(--g);padding:14px 16px 10px;font-size:18px;font-weight:500}
+header::before{content:'';display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--o);margin-right:8px}
+header small{color:#555;font-size:12px;margin-top:3px;font-weight:400}
+#nav{background:#fff}
+button{border-radius:16px;padding:5px 11px;font-size:12px;border-color:#c9c9c9;color:#000;background:#fff}
+button:hover{background:var(--g)}
+button.on{background:var(--b);border-color:var(--b);color:#fff}
+button.g{border:1px solid #c9c9c9;box-shadow:none}
+button.g.on{background:var(--b);color:#fff;border-color:var(--b)}
+#info h2{font-weight:500;font-size:19px}
+.stop{border-radius:8px;padding:8px}
+.leg{background:#fff;border:1px solid var(--g);border-left-width:5px;border-radius:8px;margin:4px 0 4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.leaflet-control-zoom,.leaflet-control-layers{border:0!important;border-radius:10px!important;box-shadow:0 1px 4px rgba(0,0,0,.35)!important}
+.leaflet-control-zoom a{color:#222!important}
+.leaflet-control-layers{padding:2px 4px}
+.leaflet-tooltip{border:0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.3);padding:8px 10px;font-family:Roboto,Arial,sans-serif}
+.leaflet-popup-content-wrapper{border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+.leaflet-control-attribution{font-size:10px}
+.gpin{position:relative;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}
+.gpin span{position:absolute;left:0;right:0;text-align:center;font-weight:700;font-family:Roboto,Arial,sans-serif}
+@media(max-width:800px){#side{top:auto;left:0;right:0;bottom:0;width:100%;height:46vh;border-radius:16px 16px 0 0}}
+/* ===== Optymalizacja mobilna (Chrome Android, Safari i Chrome na iPhone) ===== */
+html,body{-webkit-text-size-adjust:100%;text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{position:fixed;top:0;left:0;right:0;height:100vh;height:var(--H,100vh);overscroll-behavior:none}
+#map{top:0;left:0;right:0;bottom:0}
+button,.stop,#grip,#legend .lgt{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+#info{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#grip{display:none}
+@media (hover:none){button:not(.on):hover{background:#fff}.stop:hover{background:transparent}}
+@media (min-width:801px){#side{left:max(12px,env(safe-area-inset-left));top:max(12px,env(safe-area-inset-top))}}
+@media (min-width:801px) and (max-height:520px){#side{width:340px}}
+@media (max-width:800px),(pointer:coarse) and (max-width:1100px){
+ body.s-half{--sh:calc(var(--H,100vh)*.46)}
+ body.s-min{--sh:150px}
+ body.s-full{--sh:calc(var(--H,100vh)*.88)}
+ #side{display:block;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;top:auto;left:0;right:0;bottom:0;width:100%;height:var(--sh,46vh);border-radius:16px 16px 0 0;padding-bottom:env(safe-area-inset-bottom)}
+ #grip{display:block;position:sticky;top:0;z-index:6;height:26px;background:#fff;cursor:pointer}
+ #grip::after{content:'';position:absolute;left:50%;top:10px;width:46px;height:5px;margin-left:-23px;border-radius:3px;background:#c4c4c4}
+ header{position:sticky;top:26px;z-index:5;padding:2px 14px 8px;font-size:16px}
+ header small{display:none}
+ #nav,#info,#legend{flex:none}
+ #info{overflow:visible;font-size:14px;padding:8px 14px 24px}
+ #nav .row{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:3px}
+ #nav .row::-webkit-scrollbar{display:none}
+ button{flex:none;min-height:40px;padding:8px 14px;font-size:13px}
+ .stop{padding:10px 6px}
+ .stop i{width:28px;height:28px;font-size:13px}
+ .leg{padding:9px 10px;font-size:13px}
+ .leg a{display:inline-block;margin-top:4px;padding:6px 10px;border:1px solid var(--b);border-radius:14px;font-size:12px;text-decoration:none}
+ #legend{padding:8px 14px}
+ #legend .lgt{padding:6px 0}
+ .leaflet-bottom{bottom:calc(var(--sh,46vh) + 4px)}
+ .leaflet-control-zoom{display:none}
+ .leaflet-control-layers-toggle{width:44px;height:44px}
+ .leaflet-popup-content{font-size:14px;margin:12px 14px}
+ .dnav button.lst{display:inline-block}
+}
+.dnav{display:flex;gap:6px;justify-content:space-between;margin:0 0 10px}
+.dnav .lst{display:none}
+.dnav button{flex:1}
+.dnav button[disabled]{opacity:.35}
+</style>
+</head>
+<body>
+<div id="side">
+  <div id="grip" onclick="cycleSheet()" aria-label="Zmień wysokość panelu"></div>
+  <header>Azja 2026 · 23.10 – 11.11<small>Wybierz widok: cała trasa, pobyt w mieście albo pojedynczy dzień</small></header>
+  <div id="nav"></div>
+  <div id="info"></div>
+  <div id="legend"></div>
+</div>
+<div id="map"></div>
+<script>
+const PAL=['#14213d','#fca311','#000000'];
+const MODES={w:['Pieszo','#fca311','2 7'],t:['Pociąg / metro','#14213d',null],s:['Shinkansen','#000000',null],b:['Autobus / taxi','#fca311',null],f:['Samolot','#000000','4 10'],fe:['Prom','#14213d','8 5'],tr:['Tramwaj','#14213d','10 4 2 4'],p:['Kolejka na szczyt','#fca311','6 4']};
+const SLOT=['#fca311','#14213d','#000000','#ffffff'],SLOTT=['#000','#fff','#fff','#14213d'],SLOTN=['Rano','Południe','Wieczór','Nocleg'];
+// Przystanki / przesiadki: klucz → [lat,lng,nazwa]
+const S={tokyo:[35.6812,139.7671,'Tokyo Station'],yodo:[34.6925,135.5013,'Yodoyabashi'],shinagawa:[35.6285,139.7387,'Shinagawa'],ueno:[35.7141,139.7774,'Ueno'],akiba:[35.6984,139.7731,'Akihabara'],hama:[35.6555,139.7570,'Hamamatsucho'],ginza:[35.6717,139.7637,'Ginza'],shinjuku:[35.6896,139.7006,'Shinjuku'],harajuku:[35.6702,139.7027,'Harajuku'],nippori:[35.7281,139.7709,'Nippori'],namba:[34.6659,135.5013,'Namba'],umeda:[34.7055,135.4983,'Osaka / Umeda'],kyoto:[34.9858,135.7588,'Kyoto Station'],gojo:[34.9966,135.7706,'Kiyomizu-Gojo'],tennoji:[34.6465,135.5140,'Tennoji'],imamiya:[34.6500,135.5005,'Shin-Imamiya'],knara:[34.6841,135.8283,'Kintetsu-Nara'],peoples:[31.2325,121.4750,"People's Square"],shlib:[31.2105,121.4440,'Shanghai Library'],tsingyi:[22.3585,114.1075,'Tsing Yi'],laiking:[22.3485,114.1265,'Lai King'],admi:[22.2790,114.1650,'Admiralty'],lowu:[22.5282,114.1137,'Lo Wu'],laojie:[22.5420,114.1190,'Laojie (przesiadka)']};
+// Noclegi (współrzędne przybliżone na podstawie adresu)
+const H={tk:['Nocleg Tokio',35.7262,139.7910,'Senzoku, Taito (najbliżej: Minowa / Iriya, linia Hibiya)'],os:['Nocleg Osaka',34.6505,135.5030,'Sannō, Nishinari (ok. 5–8 min od Dobutsuen-mae / Shin-Imamiya)'],sh:['Nocleg Szanghaj',31.2147,121.4486,'Xuhui (okolice Wukang Rd)'],hk:['Nocleg Hongkong',22.3380,114.1385,'800 Castle Peak Rd, Mei Foo']};
+const N=(k,d,l)=>[H[k][0],H[k][1],H[k][2],3,d||H[k][3],l||null];
+// stop: [nazwa,lat,lng,pora(0-2,3=nocleg),opis,dojazd:[tryb,opis,...przystanki]]
+const D=[
+{d:'23.10',c:'Tokio',t:'Przylot i Senso-ji',s:[
+ ['Lotnisko Haneda',35.5494,139.7798,1,'Rano wylot z Pekinu; przylot 14:30',null],
+ N('tk','Zameldowanie, odsapnięcie',['t','Keikyu Airport Line → Shinagawa, JR Yamanote → Ueno, linia Hibiya → Minowa/Iriya, ok. 70 min','shinagawa','ueno']),
+ ['Senso-ji',35.7148,139.7967,2,'Kolacja [ramen] i spacer po okolicy',['w','Pieszo ok. 20 min']]]},
+{d:'24.10',c:'Tokio',t:'Pchli targ i Tokyo Tower',s:[
+ N('tk','Śniadanie w okolicy'),
+ ['Tokyo City Flea Market (Oi)',35.5927,139.7488,1,'Pchli targ, 700 wystawców, 9–16',['t','Hibiya → Akihabara, JR Keihin-Tohoku → Hamamatsucho, Tokyo Monorail → Oi Keibajo-mae, ok. 55 min','akiba','hama']],
+ ['Tokyo Tower',35.6586,139.7454,2,'Spacer z targu, tam może kolacja',['t','Monorail → Hamamatsucho, potem pieszo ok. 20 min','hama']]]},
+{d:'25.10',c:'Tokio',t:'Shinjuku, Meiji, Yoyogi, Shibuya',s:[
+ N('tk','Msza o 10 w jednym z kościołów'),
+ ['Shinjuku Gyoen',35.6852,139.7101,0,'Ogród po mszy',['t','Hibiya → Ginza, Marunouchi → Shinjuku-gyoenmae, ok. 40 min','ginza']],
+ ['Shinjuku (obiad)',35.6896,139.7006,1,'Obiad',['w','Pieszo ok. 15 min lub Marunouchi 1 przystanek']],
+ ['Meiji Shrine',35.6764,139.6993,1,'Świątynia w lesie',['t','JR Yamanote Shinjuku → Harajuku (5 min), 10 min pieszo','harajuku']],
+ ['Park Yoyogi',35.6715,139.6949,1,'Nocny market od 16 na skraju parku',['w','Pieszo ok. 10 min']],
+ ['Shibuya Crossing',35.6595,139.7005,2,'Nocny market, potem skrzyżowanie',['w','Pieszo ok. 25 min lub JR Harajuku → Shibuya 3 min']]]},
+{d:'26.10',c:'Tokio',t:'Yanaka, Ueno, Ginza',s:[
+ N('tk','Wyjście rano'),
+ ['Yanaka Ginza',35.7272,139.7667,0,'Zachowana dzielnica sprzed II WŚ: sklepy i knajpy',['t','Hibiya → Ueno, JR Yamanote → Nippori (stąd 5 min pieszo), ok. 25 min','ueno','nippori']],
+ ['Ueno / Ameyoko',35.7107,139.7745,1,'Spacer, żarciowy market, może muzeum',['t','JR Nippori → Ueno 3 min lub spacer przez Yanaka ok. 30 min']],
+ ['Ginza (Uniqlo, papiernicze)',35.6718,139.7658,2,'Zakupy',['t','Linia Hibiya Ueno → Ginza bez przesiadki, ok. 15 min']],
+ ['Tokyo Station',35.6812,139.7671,2,'Zobaczenie dworca',['t','Marunouchi Ginza → Tokyo 5 min lub pieszo ok. 20 min']]]},
+{d:'27.10',c:'Tokio',t:'Kamakura',s:[
+ N('tk','Śniadanie'),
+ ['Kamakura',35.3193,139.5503,1,'Rano przejazd, w południe zwiedzanie Kamakury (atrakcje do wyboru)',['t','Hibiya → Ueno, JR → Tokyo, JR Yokosuka Line → Kamakura, ok. 1h40 łącznie','ueno','tokyo']],
+ N('tk','Powrót do Tokio, kolacja przy noclegu',['t','JR Yokosuka Line Kamakura → Tokyo (ok. 55 min), potem Hibiya do Minowa/Iriya','tokyo','ueno'])]},
+{d:'28.10',c:'Tokio → Osaka',t:'Shinkansen do Osaki',s:[
+ N('tk','Wymeldowanie, śniadanie'),
+ ['Tokyo Station',35.6812,139.7671,0,'Dojazd na dworzec',['t','Hibiya → Ueno, JR Yamanote → Tokyo, ok. 30 min','ueno']],
+ ['Shin-Osaka',34.7335,135.5001,1,'Shinkansen, bilety kupione (QR zapisane)',['s','Nozomi ok. 2h30']],
+ N('os','Zameldowanie',['t','Midosuji Line bez przesiadki → Dobutsuen-mae (ok. 15 min) + 5–8 min pieszo']),
+ ['Dotonbori',34.6687,135.5013,2,'Zwiedzanie, kolacja w okolicy [soba?]',['t','Midosuji Dobutsuen-mae → Namba (2 przystanki) + 5 min pieszo','namba']]]},
+{d:'29.10',c:'Kioto',t:'Kiyomizu-dera, Gion, Kinkaku-ji, Arashiyama nocą',s:[
+ N('os','7:30 pociąg z Dobutsuen-mae'),
+ ['Kiyomizu-dera',34.9949,135.7850,0,'Dojazd na 9:00, zwiedzanie do 10:30',['t','Midosuji → Yodoyabashi, Keihan → Kiyomizu-Gojo, potem ok. 25 min pieszo lub autobus, ok. 1h30','yodo','gojo']],
+ ['Kodai-ji',35.0003,135.7808,0,'O 11:00 świątynia Kodai-ji',['w','Pieszo ok. 15 min']],
+ ['Gion',35.0037,135.7752,0,'Spacer po Gion',['w','Pieszo ok. 10 min']],
+ ['Kinkaku-ji',35.0394,135.7292,1,'Złoty pawilon',['b','Autobus miejski Kyoto (np. 205 z Gion), ok. 45 min']],
+ ['Antykwariat Modoribashi',35.0172,135.7508,1,'Przejazd na obiad, potem sklep z antykami (sprawdź w Google Maps)',['b','Autobus miejski Kyoto (numer podaje Google Maps)']],
+ ['Arashiyama – las bambusowy',35.0170,135.6713,2,'Przejazd na 18:30, nocne zwiedzanie',['b','Autobus lub JR Sagano z Kyoto Station, ok. 45 min']],
+ N('os','Powrót ok. 1h15',['t','JR Saga-Arashiyama → Kyoto, JR Kyoto Line → Osaka, Midosuji → Dobutsuen-mae, ok. 1h15','kyoto','umeda'])]},
+{d:'30.10',c:'Nara',t:'Nara, herbata w Kioto, Fushimi Inari',s:[
+ N('os','Śniadanie, 9:00 pociąg'),
+ ['Nara Park / Todai-ji',34.6890,135.8398,0,'Przyjazd 10:15, łażenie po parku i świątyniach do 13/14',['t','Midosuji → Namba, Kintetsu Nara Line → Kintetsu-Nara, ok. 1h15 łącznie','namba','knara']],
+ ['Kasuga Taisha',34.6813,135.8484,0,'Świątynia w parku',['w','Pieszo ok. 20 min']],
+ ['Kioto (okolice dworca)',34.9858,135.7588,1,'Np. herbata i łażenie po sklepach',['t','JR Miyakoji Rapid lub Kintetsu, ok. 1h20']],
+ ['Fushimi Inari',34.9671,135.7727,1,'Tysiące bram torii',['t','JR Nara Line Kyoto → Inari, ok. 5 min']],
+ ['Tsutenkaku',34.6525,135.5063,2,'Powrót do Osaki na kolację, łażenie po okolicy',['t','JR Nara Line → Kyoto, JR Special Rapid → Osaka, Midosuji → Dobutsuen-mae, ok. 1h20','kyoto','umeda']]]},
+{d:'31.10',c:'Osaka',t:'Dzień jedzeniowy',s:[
+ N('os','Wyjście ok. 10:00'),
+ ['Zamek Osaka',34.6873,135.5262,0,'Przejazd 10–10:40',['t','JR Loop Line Shin-Imamiya → Osakajokoen, ok. 25 min','imamiya']],
+ ['Namba Yasaka (świątynia ze smokiem)',34.6612,135.4989,1,'Dobre jedzenie do znalezienia',['t','Metro lub JR Loop (Google Maps), ok. 30 min']],
+ ['Shitenno-ji',34.6538,135.5164,1,'Najstarsza świątynia buddyjska',['t','Midosuji → Tennoji, Tanimachi Line → Shitennoji-mae Yuhigaoka, ok. 20 min','tennoji']],
+ ['Isshin-ji',34.6553,135.5134,1,'',['w','Pieszo ok. 10 min']],
+ ['Tsutenkaku',34.6525,135.5063,2,'Jedzenie wieczorem',['w','Pieszo ok. 10 min']]]},
+{d:'01.11',c:'Osaka → Szanghaj',t:'Przelot do Szanghaju',s:[
+ N('os','Wymeldowanie, śniadanie, kościół 9 lub 13'),
+ ['Lotnisko Kansai (KIX)',34.4320,135.2304,1,'Wylot 16:30',['t','Nankai Airport Express Shin-Imamiya → Kansai Airport, ok. 45 min','imamiya']],
+ ['Lotnisko Pudong (PVG)',31.1443,121.8083,2,'Przylot 18:20',['f','Lot ok. 2h']],
+ N('sh','Zameldowanie, kolacja',['t','Metro Line 2 do People\'s Square i przesiadka lub Didi, ok. 70 min','peoples']),
+ ['Wukang Road',31.2085,121.4415,2,'Spacer wieczorem (Harmay, Wukang Road)',['w','Pieszo ok. 15 min']]]},
+{d:'02.11',c:'Szanghaj',t:'Wukang, Yu Yuan, Bund, rejs',s:[
+ N('sh','Wyjście rano'),
+ ['Wukang Road',31.2085,121.4415,0,'Przejazd na Wukang Road, chodzenie po okolicy',['w','Pieszo ok. 15 min']],
+ ['Yu Yuan Garden',31.2272,121.4920,1,'Zakup biletów na rejs, obiad w pierogach Michelin',['t','Metro 10: Shanghai Library → Yuyuan Garden, ok. 20 min','shlib']],
+ ['Bund',31.2397,121.4900,1,'Spacer po Bund',['w','Pieszo ok. 25 min']],
+ ['Nanjing Road',31.2390,121.4850,1,'Spacer po Nanjing Road',['w','Pieszo ok. 10 min']],
+ ['Rejs po Huangpu (przystań – przybliżona)',31.2352,121.4950,2,'Rejs statkiem po rzece, potem kolacja w makaronie sezamowym',['w','Pieszo ok. 15 min']]]},
+{d:'03.11',c:'Suzhou',t:'Day trip do Suzhou',s:[
+ N('sh','Wyjście rano'),
+ ['Szanghaj Hongqiao (dworzec)',31.1944,121.3203,0,'Bilety Szanghaj–Suzhou jeszcze do kupienia (TO DO w arkuszu)',['t','Metro 10: Shanghai Library → Hongqiao Railway Station, ok. 35 min','shlib']],
+ ['Suzhou Station',31.3290,120.6080,0,'Przejazd pociągiem do Suzhou',['t','Szybki pociąg G ok. 30 min']],
+ ['Ogród Administratora',31.3235,120.6280,1,'Ogród, uliczka wzdłuż kanału, obiad w makaronie z krabem',['b','Metro lub Didi ok. 15 min']],
+ ['Pingjiang Road',31.3162,120.6370,1,'Uliczka wzdłuż kanału',['w','Pieszo ok. 15 min']],
+ ['Tiger Hill',31.3370,120.5800,1,'Wzgórze z pagodą',['b','Didi ok. 20 min']],
+ ['Hongqiao (powrót)',31.1944,121.3203,1,'Powrót do Szanghaju Didi lub pociągiem; wieczorem: kolacja w Hai Di Lao?, zakupy, może klub',['t','Pociąg G ok. 30 min lub Didi']]]},
+{d:'04.11',c:'Szanghaj',t:'North Bund i widok z góry',s:[
+ N('sh','Wyjście rano'),
+ ['North Bund (Manner Coffee)',31.2530,121.4980,0,'Lub Creative Industry Centre',['b','Metro lub Didi ok. 30 min']],
+ ['Shanghai Tower (przykład)',31.2335,121.5055,2,'Taras widokowy lub drinki z widokiem; w południe kaczka po pekińsku',['b','Metro lub Didi ok. 25 min']]]},
+{d:'05.11',c:'Szanghaj → Hongkong',t:'Przelot do Hongkongu',s:[
+ N('sh','Wymeldowanie'),
+ ['Lotnisko Pudong (PVG)',31.1443,121.8083,1,'Wylot 12:25',['t','Metro Line 2 do lotniska, ok. 70 min (lub Didi)','peoples']],
+ ['Lotnisko Hong Kong (HKG)',22.3080,113.9185,1,'Przylot 15:30',['f','Lot ok. 3h']],
+ N('hk','Zameldowanie',['t','Airport Express → Tsing Yi, Tung Chung Line → Lai King, Tsuen Wan Line → Mei Foo, ok. 50 min','tsingyi','laiking'])]},
+{d:'06.11',c:'Hongkong',t:'Kowloon, prom, Victoria Peak',s:[
+ N('hk','Wyjście rano'),
+ ['Jordan Station',22.3049,114.1717,0,'Przejazd na Jordan station',['t','Tsuen Wan Line bez przesiadki, ok. 15 min']],
+ ['Kowloon Park',22.3004,114.1707,0,'Spacer po parku Kowloon',['w','Pieszo ok. 5 min']],
+ ['Tsim Sha Tsui Ferry Pier',22.2933,114.1687,1,'Obiad, potem przejście do promu do Central',['w','Pieszo ok. 15 min']],
+ ['Central Pier',22.2866,114.1610,1,'Spacer po mieście',['fe','Star Ferry ok. 10 min']],
+ ['Peak Tram (dolna stacja)',22.2776,114.1597,2,'Wjazd tramwajem na szczyt na zachód słońca',['w','Pieszo ok. 20 min (lub autobus)']],
+ ['Victoria Peak',22.2759,114.1455,2,'Zachód słońca nad miastem',['p','Peak Tram ok. 8 min']],
+ N('hk','Do domu: powrót metrem',['t','Peak Tram → Central, Tsuen Wan Line → Mei Foo, ok. 50 min'])]},
+{d:'07.11',c:'Macau',t:'Makau – ruiny św. Pawła i pasteis de nata',s:[
+ N('hk','Wyjście rano'),
+ ['Terminal promowy HK–Macau (Sheung Wan)',22.2878,114.1522,0,'Prom do Macau rano',['t','Tsuen Wan Line → Admiralty, Island Line → Sheung Wan, ok. 35 min','admi']],
+ ['Terminal promowy Macau (Outer Harbour)',22.1959,113.5538,0,'Przypłynięcie do Macau',['fe','Prom TurboJet ok. 1h (bilety wcześniej)']],
+ ['Ruiny kościoła św. Pawła',22.1973,113.5410,1,'Zwiedzanie ruin kościoła',['b','Autobus miejski lub taxi, ok. 20 min']],
+ ['Historyczne centrum (Senado Square)',22.1936,113.5399,1,'Spacer po historycznym centrum, próbowanie pasteis de nata',['w','Pieszo ok. 3 min']],
+ ['Terminal promowy Macau (powrót)',22.1959,113.5538,2,'Wieczorem powrót do Hongkongu',['b','Autobus miejski lub taxi, ok. 20 min']],
+ ['Terminal promowy HK–Macau (powrót)',22.2878,114.1522,2,'Prom do Hongkongu (Victoria Harbour)',['fe','Prom ok. 1h']]]},
+{d:'08.11',c:'Hongkong',t:'Tramwaj, muzeum, Ladies Market',s:[
+ N('hk','Kościół'),
+ ['Western Market (Sheung Wan)',22.2878,114.1495,0,'Start przejazdu tramwajem po wyspie',['t','Tsuen Wan Line → Admiralty, Island Line → Sheung Wan, ok. 35 min','admi']],
+ ['Causeway Bay',22.2800,114.1855,0,'Tramwaj piętrowy',['tr','Tramwaj ok. 40 min']],
+ ['Hong Kong Museum of Art',22.2935,114.1722,1,'Obiad na wyspie, muzeum sztuki lub historii',['t','MTR Causeway Bay → Admiralty → Tsuen Wan Line → Tsim Sha Tsui, ok. 25 min','admi']],
+ ['Ladies Market',22.3190,114.1707,2,'Zakupy, kolacja gdzieś',['t','Tsuen Wan Line TST → Mong Kok, ok. 6 min']]]},
+{d:'09.11',c:'Shenzhen',t:'Shenzhen – obrazy',s:[
+ N('hk','Pobudka, wyjście'),
+ ['Dafen Oil Painting Village',22.6056,114.1426,1,'Metro do Luohu, przejazd do Dafen, kupowanie obrazów, zwiedzanie Shenzhen (miejsce przybliżone)',['t','MTR East Rail → Lo Wu, granica, metro Shenzhen: Luohu → Line 1 → Laojie → Line 3 → Dafen, ok. 2h','lowu','laojie']],
+ N('hk','Przejazd do hotelu w HK',['t','Metro Line 3 → Laojie → Line 1 → Luohu, granica Lo Wu, MTR (Google Maps) → Mei Foo, ok. 2h','laojie','lowu'])]},
+{d:'10.11',c:'Hongkong → Warszawa',t:'Powrót do Polski',s:[
+ N('hk','Wymeldowanie'),
+ ['Lotnisko Hong Kong (HKG)',22.3080,113.9185,1,'Wylot 18:40, przesiadka w Doha, WAW 11.11 o 6:40',['t','Tsuen Wan → Lai King, Tung Chung → Tsing Yi, Airport Express, ok. 50 min','laiking','tsingyi']]]}
+];
+const GR=[
+ {n:'Tokio',c:H.tk,d:[0,1,2,3,4,5]},
+ {n:'Osaka, Kioto, Nara',c:H.os,d:[5,6,7,8,9]},
+ {n:'Szanghaj, Suzhou',c:H.sh,d:[9,10,11,12,13]},
+ {n:'Hongkong, Makau, Shenzhen',c:H.hk,d:[13,14,15,16,17,18]}];
+
+const km=(a,b)=>{const r=Math.PI/180,x=(b[2]-a[2])*r*Math.cos((a[1]+b[1])*r/2),y=(b[1]-a[1])*r;return 6371*Math.sqrt(x*x+y*y)};
+const gm=(a,b,m)=>'https://www.google.com/maps/dir/?api=1&origin='+a[1]+','+a[2]+'&destination='+b[1]+','+b[2]+'&travelmode='+(m==='w'?'walking':'transit');
+const esc=s=>s.replace(/</g,'&lt;');
+
+const map=L.map('map',{zoomControl:false,tapTolerance:15});
+L.control.zoom({position:'bottomright'}).addTo(map);
+const WEBGL=(()=>{try{const c=document.createElement('canvas');return !!(c.getContext('webgl')||c.getContext('experimental-webgl'))}catch(e){return false}})();
+const ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/';
+const base={
+ 'Ulice, styl Google (Esri + filtr)':L.tileLayer(ESRI+'World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,className:'t-google',attribution:'Tiles &copy; Esri'}),
+ 'OpenStreetMap, styl Google (filtr)':L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,className:'t-osmg',attribution:'&copy; OpenStreetMap contributors'}),
+ 'Ulice (Esri, oryginał)':L.tileLayer(ESRI+'World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles &copy; Esri'}),
+ 'Jasna szara (Esri)':L.tileLayer(ESRI+'Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19,attribution:'Tiles &copy; Esri'}),
+ 'Satelita (Esri)':L.tileLayer(ESRI+'World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles &copy; Esri'})
+};
+// Mapa wektorowa OpenFreeMap przemalowana na kolory zbliżone do Google (eksperymentalna)
+function googleize(m){
+  const C={bg:'#f5f3ee',water:'#aadaff',park:'#c9e8c0',build:'#e9e5dc',hw:'#fdd88a',road:'#ffffff',casing:'#e0dcd2'};
+  m.getStyle().layers.forEach(l=>{
+    const id=l.id,t=l.type;
+    try{
+      if(t==='background')m.setPaintProperty(id,'background-color',C.bg);
+      else if(t==='fill'&&/water/i.test(id))m.setPaintProperty(id,'fill-color',C.water);
+      else if(t==='fill'&&/park|wood|forest|grass|green|garden|pitch|cemetery|nature/i.test(id))m.setPaintProperty(id,'fill-color',C.park);
+      else if(t==='fill'&&/building/i.test(id))m.setPaintProperty(id,'fill-color',C.build);
+      else if(t==='line'&&/waterway|river/i.test(id))m.setPaintProperty(id,'line-color',C.water);
+      else if(t==='line'&&/casing|outline/i.test(id))m.setPaintProperty(id,'line-color',C.casing);
+      else if(t==='line'&&/motorway|trunk/i.test(id))m.setPaintProperty(id,'line-color',C.hw);
+      else if(t==='line'&&/primary|secondary|tertiary|minor|street|service|road|link/i.test(id)&&!/rail|transit|path|pedestrian|track/i.test(id))m.setPaintProperty(id,'line-color',C.road);
+    }catch(e){}
+    try{
+      if(t==='symbol'){
+        const tf=m.getLayoutProperty(id,'text-field');
+        if(tf&&JSON.stringify(tf).indexOf('name')>-1)m.setLayoutProperty(id,'text-field',['coalesce',['get','name:pl'],['get','name:latin'],['get','name:en'],['get','name']]);
+      }
+    }catch(e){}
+  });
+}
+const VECNAME='Wektorowa, styl Google (OpenFreeMap + polskie nazwy)';
+let vecOK=false;
+if(typeof L.maplibreGL==='function'&&WEBGL){
+  try{
+    const vec=L.maplibreGL({style:'https://tiles.openfreemap.org/styles/liberty',attribution:'&copy; OpenMapTiles, &copy; OpenStreetMap, OpenFreeMap'});
+    const apply=()=>{const m=vec.getMaplibreMap&&vec.getMaplibreMap();if(!m)return;const run=()=>{try{googleize(m)}catch(e){}};run();m.once('idle',run)};
+    base[VECNAME]=vec;
+    map.on('baselayerchange',e=>{if(e.layer===vec)setTimeout(apply,0)});
+    vec.addTo(map);setTimeout(apply,0);setTimeout(apply,1500);
+    vecOK=true;
+  }catch(e){vecOK=false}
+}
+if(!vecOK)base['Ulice, styl Google (Esri + filtr)'].addTo(map);
+L.control.layers(base,null,{position:'bottomright'}).addTo(map);
+const layer=L.layerGroup().addTo(map);let mk=[];
+
+const pin=(txt,col,sz,fg,bd)=>{const h=Math.round(sz*1.35);return L.divIcon({className:'',html:'<div class="gpin" style="width:'+sz+'px;height:'+h+'px"><svg width="'+sz+'" height="'+h+'" viewBox="0 0 24 32"><path d="M12 1C5.9 1 1 5.9 1 12c0 8.3 11 19 11 19s11-10.7 11-19C23 5.9 18.1 1 12 1z" fill="'+col+'" stroke="'+(bd||'#fff')+'" stroke-width="'+(bd?2.4:1.6)+'"/></svg><span style="top:'+Math.round(sz*.22)+'px;color:'+(fg||'#fff')+';font-size:'+(sz>28?14:sz>24?12:10)+'px;line-height:'+Math.round(sz*.5)+'px">'+txt+'</span></div>',iconSize:[sz,h],iconAnchor:[sz/2,h],popupAnchor:[0,-h],tooltipAnchor:[sz/2,-h*.55]})};
+const MQ=window.matchMedia('(max-width:800px),(pointer:coarse) and (max-width:1100px)');
+const isMob=()=>MQ.matches;
+let sheet='half';
+function setSheet(k){sheet=k;document.body.classList.remove('s-half','s-min','s-full');document.body.classList.add('s-'+k)}
+let lastFit=null;
+function cycleSheet(){setSheet(sheet==='half'?'full':sheet==='full'?'min':'half');setTimeout(()=>{if(lastFit)fit(lastFit[0],lastFit[1])},60)}
+function setH(){document.documentElement.style.setProperty('--H',innerHeight+'px')}
+addEventListener('resize',()=>{setH();if(lastFit)setTimeout(()=>fit(lastFit[0],lastFit[1]),120)});addEventListener('orientationchange',()=>setTimeout(setH,350));setH();setSheet('half');
+const sheetPx=()=>isMob()?document.getElementById('side').getBoundingClientRect().height:0;
+const NOHOVER=window.matchMedia&&matchMedia('(hover: none)').matches;
+function bt(layer,html,opt){
+  if(!NOHOVER)layer.bindTooltip(html,opt||{});
+  layer.bindPopup(html,{maxWidth:Math.max(180,Math.min(280,innerWidth-60)),autoPanPaddingTopLeft:[16,16],autoPanPaddingBottomRight:[16,sheetPx()+16]});
+  return layer;
+}
+const fit=(pts,max)=>{lastFit=[pts,max];const mob=isMob();map.invalidateSize();map.fitBounds(pts,{paddingTopLeft:[mob?24:430,mob?24:50],paddingBottomRight:[mob?24:40,mob?sheetPx()+16:50],maxZoom:max||18})};
+function toInfo(){if(!isMob())return;requestAnimationFrame(()=>{const sd=document.getElementById('side'),inf=document.getElementById('info');sd.scrollTop=Math.max(0,inf.offsetTop-70)})}
+function toTop(){document.getElementById('side').scrollTop=0}
+const home=sz=>pin('&#8962;','#fff',sz,'#14213d','#fca311');
+const tip=(day,s)=>'<b>'+esc(s[0])+'</b><br>'+day.d+' · '+SLOTN[s[3]]+(s[4]?'<br>'+esc(s[4]):'');
+
+function leg(day,p,s,col,thin,dash){
+  const l=s[5];if(!l)return;const md=MODES[l[0]];
+  const via=l.slice(2).map(k=>S[k]);
+  const pts=[[p[1],p[2]],...via.map(v=>[v[0],v[1]]),[s[1],s[2]]];
+  const line=L.polyline(pts,{color:col||md[1],weight:thin?3:(l[0]==='s'?6:4),opacity:.9,dashArray:thin?(dash||null):md[2]}).addTo(layer);
+  bt(line,'<b>'+md[0]+'</b>: '+esc(p[0])+' → '+esc(s[0])+'<br>'+esc(l[1]),{sticky:true});
+  if(!thin)via.forEach(v=>bt(L.circleMarker([v[0],v[1]],{radius:6,color:md[1],weight:3,fillColor:'#fff',fillOpacity:1}),'<b>Przystanek / przesiadka</b><br>'+v[2]).addTo(layer));
+}
+
+function setNav(cur){
+  document.querySelectorAll('#nav button').forEach(b=>{const on=b.dataset.k===cur;b.classList.toggle('on',on);
+    if(on&&isMob()&&b.scrollIntoView){try{b.scrollIntoView({inline:'center',block:'nearest'})}catch(e){}}});
+  if(isMob()&&sheet==='full')setSheet('half');
+}
+
+function showAll(){
+  layer.clearLayers();mk=[];setNav('all');const all=[];
+  D.forEach((day,i)=>{
+    const pts=day.s.map(s=>[s[1],s[2]]);
+    if(day.c.indexOf('→')<0&&pts.length>1)L.polyline(pts,{color:PAL[i%3],weight:3,opacity:.7}).addTo(layer);
+    day.s.forEach(s=>all.push([s[1],s[2]]));
+  });
+  const route=[[H.tk,H.os,'s'],[H.os,H.sh,'f'],[H.sh,H.hk,'f']];
+  route.forEach(r=>bt(L.polyline([[r[0][1],r[0][2]],[r[1][1],r[1][2]]],{color:MODES[r[2]][1],weight:r[2]==='s'?6:4,dashArray:MODES[r[2]][2],opacity:.9}),MODES[r[2]][0]+': '+r[0][0]+' → '+r[1][0],{sticky:true}).addTo(layer));
+  Object.values(H).forEach(h=>bt(L.marker([h[1],h[2]],{icon:home(30)}),'<b>'+h[0]+'</b><br>'+h[3]).addTo(layer));
+  fit(Object.values(H).map(h=>[h[1],h[2]]).concat([[34.4,135.2],[22.3,113.9]]));
+  const info=document.getElementById('info');
+  info.innerHTML='<h2>Cała trasa</h2><div class="sub">Tokio → Osaka (shinkansen) → Szanghaj → Hongkong → Warszawa</div>'+
+   GR.map((g,k)=>'<div class="stop" onclick="showGroup('+k+')"><i style="background:var(--b);color:#fff;width:auto;padding:0 8px;border-radius:12px">'+g.n+'</i><div><small>Zobacz cały pobyt</small></div></div>').join('')+
+   '<div class="sub" style="margin-top:12px">Linie: shinkansen (gruba czarna), loty (czarna przerywana). Szczegóły przejazdów w widoku dnia.</div>';
+}
+
+function showGroup(k){
+  layer.clearLayers();mk=[];setNav('g'+k);const g=GR[k],pts=[];
+  let html='<h2>'+g.n+'</h2><div class="sub">Cały pobyt – kolor oznacza dzień, kliknij dzień, aby zobaczyć szczegóły i przejazdy</div>';
+  g.d.forEach((di,j)=>{
+    const day=D[di],col=PAL[j%3],dash=j>=3?'8 6':null,fg=col==='#fca311'?'#000':'#fff';let prev=null;
+    html+='<div class="stop" onclick="showDay('+di+')"><i style="background:'+col+';color:'+fg+';width:auto;padding:0 7px;border-radius:12px">'+day.d+'</i><div>'+day.t+'<small>'+day.s.filter(s=>s[3]<3).length+' punktów</small></div></div>';
+    day.s.forEach((s,n)=>{
+      if(km(g.c,s)>120){prev=null;return;}
+      if(prev&&s[5])leg(day,prev,s,col,true,dash);
+      prev=s;pts.push([s[1],s[2]]);
+      if(s[3]<3)bt(L.marker([s[1],s[2]],{icon:pin(day.d.slice(0,2),col,26,fg)}),tip(day,s)).addTo(layer);
+    });
+  });
+  bt(L.marker([g.c[1],g.c[2]],{icon:home(32)}),'<b>'+g.c[0]+'</b><br>'+g.c[3]).addTo(layer);
+  pts.push([g.c[1],g.c[2]]);fit(pts);
+  document.getElementById('info').innerHTML=html;toInfo();
+}
+
+function showDay(i){
+  layer.clearLayers();mk=[];setNav('d'+i);
+  const day=D[i],pts=[];
+  let html='<div class="dnav"><button '+(i<1?'disabled ':'onclick="showDay('+(i-1)+')" ')+'>&lsaquo; '+(i>0?D[i-1].d:'')+'</button><button class="lst" onclick="toTop()">Lista dni &uarr;</button><button '+(i>=D.length-1?'disabled ':'onclick="showDay('+(i+1)+')" ')+'>'+(i<D.length-1?D[i+1].d:'')+' &rsaquo;</button></div><h2>'+day.d+'.2026 · '+day.c+'</h2><div class="sub">'+day.t+'</div>',prev=null,num=0;
+  day.s.forEach((s,k)=>{
+    const ll=[s[1],s[2]];pts.push(ll);
+    if(prev&&s[5]){
+      leg(day,prev,s,null,false);const md=MODES[s[5][0]];
+      html+='<div class="leg" style="border-color:'+md[1]+'"><b style="color:'+md[1]+'">'+md[0]+'</b> · '+esc(s[5][1])+
+        (s[5][0]!=='f'?' <a href="'+gm(prev,s,s[5][0])+'" target="_blank" rel="noopener">trasa w Google Maps &rarr;</a>':'')+'</div>';
+    }
+    const lab=s[3]===3?'&#8962;':++num;
+    const m=bt(L.marker(ll,{icon:s[3]===3?home(32):pin(lab,SLOT[s[3]],30,SLOTT[s[3]])}).addTo(layer),tip(day,s));
+    mk.push(m);
+    html+='<div class="stop" onclick="focusStop('+k+')"><i style="background:'+SLOT[s[3]]+';color:'+SLOTT[s[3]]+(s[3]===3?';border:2px solid #fca311':'')+'">'+lab+'</i><div>'+esc(s[0])+'<small>'+SLOTN[s[3]]+(s[4]?' · '+esc(s[4]):'')+'</small></div></div>';
+    prev=s;
+  });
+  const far=pts.length>1&&km(day.s[0],day.s[day.s.length-1])>120;
+  if(far)html+='<div style="margin-top:10px"><button onclick="fit(window.__dayAll,6)">Pokaż cały przejazd / przelot</button></div>';
+  document.getElementById('info').innerHTML=html;
+  window.__dayAll=pts;
+  if(far){
+    const last=day.s[day.s.length-1],near=day.s.filter(x=>km(last,x)<=120).map(x=>[x[1],x[2]]);
+    fit(near.length>1?near:pts,15);
+  }else fit(pts,16);
+  toInfo();
+}
+function focusStop(k){
+  const ll=mk[k].getLatLng();map.setView(ll,Math.max(map.getZoom(),15),{animate:false});
+  if(isMob())map.panBy([0,Math.round(sheetPx()/2)],{animate:false});
+  mk[k].openPopup();
+}
+
+const nav=document.getElementById('nav');
+nav.innerHTML='<div class="lbl">Widok pobytu</div><div class="row"><button data-k="all" class="g" onclick="showAll()">Cała trasa</button>'+
+ GR.map((g,k)=>'<button data-k="g'+k+'" class="g" onclick="showGroup('+k+')">'+g.n+'</button>').join('')+'</div>'+
+ '<div class="lbl">Pojedynczy dzień</div><div class="row">'+D.map((d,i)=>'<button data-k="d'+i+'" onclick="showDay('+i+')"><b>'+d.d+'</b> '+d.c.split(' ')[0]+'</button>').join('')+'</div>';
+const lg=document.getElementById('legend');
+lg.innerHTML='<div class="lgt" onclick="this.parentNode.classList.toggle(\'closed\')">Legenda &#9662;</div><div class="items">'+(Object.values(MODES).map(m=>'<span><u style="border-color:'+m[1]+';border-top-style:'+(m[2]?(m[2].charAt(0)==='2'?'dotted':'dashed'):'solid')+'"></u>'+m[0]+'</span> ').join('')+'<br>'+
+ SLOT.map((c,i)=>'<span><em style="background:'+c+(i===3?';border:2px solid #fca311':'')+'"></em>'+SLOTN[i]+'</span> ').join('')+'<span>Białe kółka na trasie: przystanki i przesiadki</span>')+'</div>';
+if(innerWidth<=800)lg.classList.add('closed');
+showAll();
+</script>
+</body>
+</html>
